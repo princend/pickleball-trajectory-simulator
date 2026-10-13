@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="./style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pen</title>
+    <title>Pickleball Trajectory Simulator</title>
   </head>
   <body>
 
@@ -17,7 +17,11 @@
 <div id="ui-container">
   <div class="ui-header">
     <h2>Pickleball 物理軌跡</h2>
-    <button id="toggleUiBtn">收合</button>
+    <div class="header-actions">
+      <!-- 💡 將揮拍按鈕移到頂部，收合時也能隨時按！ -->
+      <button id="playBtn">揮拍擊球</button>
+      <button id="toggleUiBtn">收合</button>
+    </div>
   </div>
   
   <div id="ui-content">
@@ -52,12 +56,10 @@
       <input type="range" id="heightSlider" min="0.1" max="2.5" step="0.1" value="0.7">
     </div>
 
-    <button id="playBtn">揮拍擊球</button>
     <div id="status"></div>
   </div>
 </div>
 
 <div id="canvas-container"></div>
-    
 </body>
 </html>

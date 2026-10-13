@@ -26,7 +26,7 @@ const heightVal = document.getElementById("heightVal");
 const presetSelect = document.getElementById("shotPreset");
 const spinTypeSelect = document.getElementById("spinType");
 
-// 💡 完美參數表
+// 💡 完美參數表：集結了所有你親自測出的「黃金比例」
 const perfectPresets = {
   "drop-flat": { angle: 25.0, power: 11.3, height: 0.7 },
   "drop-topspin": { angle: 43.0, power: 20.7, height: 0.4 }, 
@@ -53,6 +53,7 @@ function applyPerfectPreset() {
   playShot();
 }
 
+// 監聽下拉選單與滑桿變化
 presetSelect.addEventListener('change', applyPerfectPreset);
 spinTypeSelect.addEventListener('change', applyPerfectPreset);
 angleSlider.addEventListener('input', (e) => { angleVal.innerText = e.target.value; playShot(); });
@@ -62,11 +63,11 @@ heightSlider.addEventListener('input', (e) => { heightVal.innerText = e.target.v
 // === 場景初始化 ===
 const container = document.getElementById("canvas-container");
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x6eb5ff);
+scene.background = new THREE.Color(0x6eb5ff); // 天空藍
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-// 💡 RWD 攝影機初始化與縮放適應
+// 💡 RWD 攝影機動態適應
 function updateCameraRWD() {
   const aspect = window.innerWidth / window.innerHeight;
   camera.aspect = aspect;
@@ -98,7 +99,7 @@ dirLight.position.set(10, 20, 10);
 dirLight.castShadow = true;
 scene.add(dirLight);
 
-// === 建立標準匹克球場 ===
+// === 建立標準匹克球場 (公制單位: 公尺) ===
 const COURT_WIDTH = 6.10;
 const COURT_LENGTH = 13.41;
 const NVZ_DEPTH = 2.13;
@@ -130,16 +131,17 @@ function createLine(w, h, x, z) {
 }
 
 const lw = 0.05;
-createLine(COURT_WIDTH + lw, lw, 0, COURT_LENGTH / 2);
-createLine(COURT_WIDTH + lw, lw, 0, -COURT_LENGTH / 2);
-createLine(lw, COURT_LENGTH, COURT_WIDTH / 2, 0);
-createLine(lw, COURT_LENGTH, -COURT_WIDTH / 2, 0);
-createLine(COURT_WIDTH, lw, 0, NVZ_DEPTH); 
-createLine(COURT_WIDTH, lw, 0, -NVZ_DEPTH); 
+createLine(COURT_WIDTH + lw, lw, 0, COURT_LENGTH / 2); // 南底線
+createLine(COURT_WIDTH + lw, lw, 0, -COURT_LENGTH / 2); // 北底線
+createLine(lw, COURT_LENGTH, COURT_WIDTH / 2, 0); // 東邊線
+createLine(lw, COURT_LENGTH, -COURT_WIDTH / 2, 0); // 西邊線
+createLine(COURT_WIDTH, lw, 0, NVZ_DEPTH); // 南廚房線
+createLine(COURT_WIDTH, lw, 0, -NVZ_DEPTH); // 北廚房線
 const serveDepth = (COURT_LENGTH / 2) - NVZ_DEPTH;
-createLine(lw, serveDepth, 0, NVZ_DEPTH + serveDepth / 2);
-createLine(lw, serveDepth, 0, -(NVZ_DEPTH + serveDepth / 2));
+createLine(lw, serveDepth, 0, NVZ_DEPTH + serveDepth / 2); // 南發球中線
+createLine(lw, serveDepth, 0, -(NVZ_DEPTH + serveDepth / 2)); // 北發球中線
 
+// 實體球網
 const netGeo = new THREE.PlaneGeometry(COURT_WIDTH + 0.5, NET_HEIGHT);
 const netMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
 const net = new THREE.Mesh(netGeo, netMat);
@@ -165,7 +167,7 @@ let animationFrameId = null;
 let pathPoints = [];
 let animIndex = 0;
 
-// === 物理引擎核心 ===
+// === 物理引擎核心：升級為 RK4 (四階龍格－庫塔法) 數學模型 ===
 function calculatePhysicsTrajectory(angleDeg, power, spinType, startHeight) {
   const g = 9.81; 
   const mass = 0.026; 
@@ -190,30 +192,56 @@ function calculatePhysicsTrajectory(angleDeg, power, spinType, startHeight) {
   let hitNet = false;
   let bounceCount = 0;
   let isOut = false; 
-  
-  while (points.length < 2500) {
-    let vMag = Math.sqrt(v.x**2 + v.y**2 + v.z**2);
-    if (vMag < 0.1 && bounceCount > 0) break; 
 
-    let F_drag = 0.5 * rho * (vMag**2) * Cd * A;
-    let a_drag = F_drag / mass;
-    let ax = -a_drag * (v.x / vMag);
-    let ay = -g - a_drag * (v.y / vMag);
-    let az = -a_drag * (v.z / vMag);
+  // 計算加速度輔助函數
+  function getAcceleration(velocity) {
+    let vMag = velocity.length();
+    if (vMag < 0.0001) return new THREE.Vector3(0, -g, 0);
+
+    let a_drag_mag = (0.5 * rho * (vMag**2) * Cd * A) / mass;
+    let ax = -a_drag_mag * (velocity.x / vMag);
+    let ay = -g - a_drag_mag * (velocity.y / vMag);
+    let az = -a_drag_mag * (velocity.z / vMag);
 
     if (spinType === "topspin") {
-      let Cl_dynamic = (angleDeg > 20) ? 1.5 : 0.35; 
-      let F_magnus = 0.5 * rho * (vMag**2) * Cl_dynamic * A;
-      let a_magnus = F_magnus / mass;
-      ay -= a_magnus; 
+      let r_omega = (angleDeg > 20) ? 22.0 : 8.5; 
+      let a_magnus_mag = (0.5 * rho * A * r_omega * vMag) / mass;
+      let vxz = Math.sqrt(velocity.x**2 + velocity.z**2);
+      ay -= a_magnus_mag * (vxz / vMag);
     }
 
-    v.x += ax * dt;
-    v.y += ay * dt;
-    v.z += az * dt;
+    return new THREE.Vector3(ax, ay, az);
+  }
+  
+  while (points.length < 2500) {
+    let vMag = v.length();
+    if (vMag < 0.1 && bounceCount > 0) break; 
 
-    let nextPos = pos.clone().addScaledVector(v, dt);
+    // --- RK4 四階取樣計算 ---
+    let dv1 = getAcceleration(v);
+    let dx1 = v.clone();
 
+    let v2 = v.clone().addScaledVector(dv1, dt * 0.5);
+    let dv2 = getAcceleration(v2);
+    let dx2 = v.clone().addScaledVector(dv1, dt * 0.5);
+
+    let v3 = v.clone().addScaledVector(dv2, dt * 0.5);
+    let dv3 = getAcceleration(v3);
+    let dx3 = v.clone().addScaledVector(dv2, dt * 0.5);
+
+    let v4 = v.clone().addScaledVector(dv3, dt);
+    let dv4 = getAcceleration(v4);
+    let dx4 = v.clone().addScaledVector(dv3, dt);
+
+    let nextPos = pos.clone().add(
+      dx1.clone().add(dx2.clone().multiplyScalar(2)).add(dx3.clone().multiplyScalar(2)).add(dx4).multiplyScalar(dt / 6)
+    );
+    
+    v.add(
+      dv1.clone().add(dv2.clone().multiplyScalar(2)).add(dv3.clone().multiplyScalar(2)).add(dv4).multiplyScalar(dt / 6)
+    );
+
+    // 網子碰撞偵測
     if (pos.z > 0 && nextPos.z <= 0) {
       if (nextPos.y < NET_HEIGHT) {
         hitNet = true;
@@ -222,6 +250,7 @@ function calculatePhysicsTrajectory(angleDeg, power, spinType, startHeight) {
       }
     }
 
+    // 地面彈跳偵測
     if (nextPos.y <= actualRadius) {
       nextPos.y = actualRadius; 
       v.y = -v.y * COR;         
@@ -248,15 +277,16 @@ function calculatePhysicsTrajectory(angleDeg, power, spinType, startHeight) {
   return { points, hitNet, isOut, firstBounceZ: points.find(p => p.y <= actualRadius)?.z };
 }
 
+// 根據狀態決定軌跡顏色 (好球綠色 / 掛網紅色 / 出界橘色)
 function drawTrajectory(points, hitNet, isOut) {
   if (trajectoryLine) scene.remove(trajectoryLine);
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
   
-  let lineColor = 0x00ff00; 
+  let lineColor = 0x00ff00; // 預設亮綠色
   if (hitNet) {
-    lineColor = 0xff3333;   
+    lineColor = 0xff3333;   // 掛網紅色
   } else if (isOut) {
-    lineColor = 0xff9800;   
+    lineColor = 0xff9800;   // 出界橘色
   }
 
   const material = new THREE.LineBasicMaterial({ color: lineColor, linewidth: 3 });
@@ -312,7 +342,7 @@ function animateBall() {
   }
 }
 
-// 💡 RWD 事件監聽：當視窗縮放時（或手機旋轉螢幕），自動重新計算尺寸與攝影機位置
+// RWD 視窗大小與攝影機自動適應監聽
 window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   updateCameraRWD();
@@ -326,7 +356,7 @@ function animate() {
 
 document.getElementById("playBtn").addEventListener("click", playShot);
 
-// 頁面載入時，觸發 RWD 判定與預設動畫
+// 初始化執行
 updateCameraRWD();
 applyPerfectPreset();
 animate();

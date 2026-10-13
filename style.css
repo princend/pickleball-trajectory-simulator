@@ -3,7 +3,6 @@ body {
   overflow: hidden;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #1a1a1a;
-  /* 防止手機瀏覽器下拉更新畫面 */
   overscroll-behavior-y: contain; 
 }
 
@@ -26,9 +25,8 @@ body {
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   z-index: 10;
   border: 1px solid #444;
-  width: 260px;
+  width: 280px;
   transition: all 0.3s ease;
-  /* 確保 padding 不會撐破 width */
   box-sizing: border-box; 
 }
 
@@ -36,23 +34,45 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .ui-header h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   color: #caff00;
 }
 
+/* 頂部按鈕群組容器 */
+.header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+#playBtn {
+  padding: 5px 12px;
+  background: #caff00;
+  color: #111;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+#playBtn:hover {
+  background: #e0ff4d;
+  transform: translateY(-1px);
+}
+
 #toggleUiBtn {
-  width: auto;
-  padding: 4px 10px;
-  margin: 0;
+  padding: 5px 10px;
   background: #444;
   color: #fff;
   font-size: 0.8rem;
-  border-radius: 4px;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
 }
@@ -63,6 +83,7 @@ body {
 
 .control-group {
   margin-bottom: 12px;
+  margin-top: 10px;
 }
 
 label {
@@ -85,25 +106,6 @@ select {
   font-size: 0.9rem;
 }
 
-#playBtn {
-  width: 100%;
-  padding: 10px;
-  background: #caff00;
-  color: #111;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: all 0.2s;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-#playBtn:hover {
-  background: #e0ff4d;
-  transform: translateY(-2px);
-}
-
 #status {
   margin-top: 10px;
   font-size: 0.85rem;
@@ -111,34 +113,34 @@ select {
 }
 
 /* =========================================
-   📱 RWD 手機版設定 (螢幕寬度小於 768px 時觸發) 
+   📱 RWD 手機版底部抽屜設定 (< 768px)
    ========================================= */
 @media (max-width: 768px) {
   #ui-container {
-    top: auto;          /* 取消上方定位 */
-    bottom: 0;          /* 貼齊畫面底部 */
+    top: auto;          
+    bottom: 0;          
     left: 0;
-    width: 100vw;       /* 滿版寬度 */
-    border-radius: 20px 20px 0 0; /* 做出 App 底部抽屜的上圓角 */
+    width: 100vw;       
+    border-radius: 20px 20px 0 0; 
     border: none;
     border-top: 1px solid #555;
-    /* 底部多留 25px 空間，避免被 iPhone 底部的橫條 (Home Indicator) 擋住 */
     padding: 15px 20px 25px 20px; 
-    /* 陰影改往上打 */
     box-shadow: 0 -4px 20px rgba(0,0,0,0.6); 
   }
 
-  .ui-header h2 { font-size: 1.1rem; }
-  label { font-size: 0.8rem; margin-bottom: 3px; }
+  .ui-header h2 { font-size: 1rem; }
   
-  /* 讓各個控制項稍微緊湊一點 */
+  #playBtn {
+    padding: 6px 14px;
+    font-size: 0.9rem;
+  }
+
+  label { font-size: 0.8rem; margin-bottom: 3px; }
   .control-group { margin-bottom: 8px; }
   select { padding: 5px; font-size: 0.85rem; }
-  #playBtn { margin-top: 5px; padding: 10px; font-size: 0.95rem; }
   
   #ui-content {
-    /* 限制面板最高只佔螢幕的一半 (50vh)，確保永遠看得到上半部的球場 */
     max-height: 50vh; 
-    overflow-y: auto; /* 如果手機螢幕真的太小，可以在面板內上下滑動 */
+    overflow-y: auto; 
   }
 }
