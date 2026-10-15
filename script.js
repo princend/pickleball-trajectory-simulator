@@ -83,8 +83,9 @@ function updateCameraRWD() {
   camera.updateProjectionMatrix();
 }
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 提升錄影與顯示清晰度
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
 
@@ -355,13 +356,105 @@ function playShot() {
   animateBall();
 }
 
+// === 球體飛行與錄影自動收尾邏輯 ===
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+
 function animateBall() {
   if (animIndex < pathPoints.length) {
     ball.position.copy(pathPoints[animIndex]);
     animIndex += 3; 
     animationFrameId = requestAnimationFrame(animateBall);
+  } else {
+    // 確保球停在最後一個位置
+    if (pathPoints.length > 0) {
+      ball.position.copy(pathPoints[pathPoints.length - 1]);
+    }
+    // 若正在錄影，球飛完後多留 0.5 秒尾韻再自動停止並下載影片
+    if (isRecording && mediaRecorder && mediaRecorder.state === "recording") {
+      setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+        }
+      }, 500);
+    }
   }
 }
+
+// ==========================================
+// 🎥 Threads 專用：一鍵錄製純淨 3D 擊球影片功能
+// ==========================================
+const playBtn = document.getElementById("playBtn");
+const recordBtn = document.createElement("button");
+recordBtn.id = "recordBtn";
+recordBtn.innerText = "🎥 錄製擊球影片";
+recordBtn.style.cssText = `
+  margin-left: 8px;
+  padding: 8px 14px;
+  background-color: #e91e63;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+`;
+if (playBtn && playBtn.parentNode) {
+  playBtn.parentNode.insertBefore(recordBtn, playBtn.nextSibling);
+}
+
+function startRecordingShot() {
+  if (isRecording) return;
+
+  // 擷取 Three.js 畫布的 60 FPS 影格串流 (不含 HTML UI，畫面超乾淨)
+  const stream = renderer.domElement.captureStream(60);
+
+  // 優先使用 Threads 支援度最高的 MP4 格式，若瀏覽器不支援則退回 WebM
+  const mimeTypes = [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4",
+    "video/webm;codecs=vp9",
+    "video/webm"
+  ];
+  const selectedMime = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || "";
+
+  // 設定高畫質流量 (8 Mbps)，避免上傳 Threads 被壓縮變糊
+  mediaRecorder = new MediaRecorder(stream, {
+    mimeType: selectedMime,
+    videoBitsPerSecond: 8000000
+  });
+
+  recordedChunks = [];
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    const ext = selectedMime.includes("mp4") ? "mp4" : "webm";
+    const blob = new Blob(recordedChunks, { type: selectedMime || "video/webm" });
+    const url = URL.createObjectURL(blob);
+
+    // 自動觸發下載
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pickleball-${presetSelect.value}-${spinTypeSelect.value}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    isRecording = false;
+    recordBtn.innerText = "🎥 錄製擊球影片";
+    recordBtn.style.backgroundColor = "#e91e63";
+  };
+
+  isRecording = true;
+  recordBtn.innerText = "🔴 錄製中...";
+  recordBtn.style.backgroundColor = "#ff0000";
+
+  mediaRecorder.start();
+  playShot(); // 開始錄影的同時自動擊球！
+}
+
+recordBtn.addEventListener("click", startRecordingShot);
 
 // RWD 視窗大小與攝影機自動適應監聽
 window.addEventListener("resize", () => {
@@ -375,7 +468,7 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-document.getElementById("playBtn").addEventListener("click", playShot);
+playBtn.addEventListener("click", playShot);
 
 // 初始化執行
 updateCameraRWD();
