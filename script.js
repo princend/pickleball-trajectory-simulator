@@ -25,14 +25,15 @@ const heightVal = document.getElementById("heightVal");
 
 const presetSelect = document.getElementById("shotPreset");
 const spinTypeSelect = document.getElementById("spinType");
+const playBtn = document.getElementById("playBtn");
+const recordBtn = document.getElementById("recordBtn");
 
-// 💡 完美參數表（已根據修正後的真實物理模型重新精準校正）
-// Drop 精準落入廚房區 (Z ≈ -1.7m ~ -1.8m)；Drive 精準壓向底線深區 (Z ≈ -6.3m)
+// 💡 完美參數表（已根據真實物理模型校正，且高度完全對齊 HTML step="0.1"）
 const perfectPresets = {
   "drop-flat": { angle: 25.0, power: 11.3, height: 0.7 },
   "drop-topspin": { angle: 27.0, power: 12.0, height: 0.5 }, 
   "drive-flat": { angle: 13.0, power: 19.5, height: 0.8 },   
-  "drive-topspin": { angle: 12.0, power: 22.5, height: 0.85 } 
+  "drive-topspin": { angle: 12.5, power: 22.0, height: 0.8 } 
 };
 
 function applyPerfectPreset() {
@@ -85,7 +86,7 @@ function updateCameraRWD() {
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 提升錄影與顯示清晰度
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
 
@@ -385,24 +386,6 @@ function animateBall() {
 // ==========================================
 // 🎥 Threads 專用：一鍵錄製純淨 3D 擊球影片功能
 // ==========================================
-const playBtn = document.getElementById("playBtn");
-const recordBtn = document.createElement("button");
-recordBtn.id = "recordBtn";
-recordBtn.innerText = "🎥 錄製擊球影片";
-recordBtn.style.cssText = `
-  margin-left: 8px;
-  padding: 8px 14px;
-  background-color: #e91e63;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-`;
-if (playBtn && playBtn.parentNode) {
-  playBtn.parentNode.insertBefore(recordBtn, playBtn.nextSibling);
-}
-
 function startRecordingShot() {
   if (isRecording) return;
 
@@ -442,19 +425,20 @@ function startRecordingShot() {
     URL.revokeObjectURL(url);
 
     isRecording = false;
-    recordBtn.innerText = "🎥 錄製擊球影片";
-    recordBtn.style.backgroundColor = "#e91e63";
+    recordBtn.innerText = "🎥 錄影";
+    recordBtn.classList.remove("recording");
   };
 
   isRecording = true;
-  recordBtn.innerText = "🔴 錄製中...";
-  recordBtn.style.backgroundColor = "#ff0000";
+  recordBtn.innerText = "🔴 錄製中";
+  recordBtn.classList.add("recording");
 
   mediaRecorder.start();
   playShot(); // 開始錄影的同時自動擊球！
 }
 
 recordBtn.addEventListener("click", startRecordingShot);
+playBtn.addEventListener("click", playShot);
 
 // RWD 視窗大小與攝影機自動適應監聽
 window.addEventListener("resize", () => {
@@ -467,8 +451,6 @@ function animate() {
   controls.update();
   renderer.render(scene, camera);
 }
-
-playBtn.addEventListener("click", playShot);
 
 // 初始化執行
 updateCameraRWD();
