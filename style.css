@@ -25,13 +25,15 @@ body {
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   z-index: 10;
   border: 1px solid #444;
-  width: 330px; /* 微調加寬，讓標題與三顆按鈕完美同行不換行 */
+  width: 330px;
+  max-width: calc(100vw - 40px); /* 防止桌面端視窗縮太小時超出邊界 */
   transition: all 0.3s ease;
   box-sizing: border-box; 
 }
 
 .ui-header {
   display: flex;
+  flex-wrap: wrap; /* 💡 關鍵：當寬度不足 (如 320px) 時自動換行，絕不超出螢幕 */
   justify-content: space-between;
   align-items: center;
   margin-bottom: 5px;
@@ -50,7 +52,6 @@ body {
   display: flex;
   gap: 5px;
   align-items: center;
-  flex-shrink: 0;
 }
 
 #playBtn {
@@ -129,6 +130,7 @@ label {
 
 select, input[type="range"] {
   width: 100%;
+  box-sizing: border-box;
 }
 
 select {
@@ -154,19 +156,20 @@ select {
     top: auto;          
     bottom: 0;          
     left: 0;
-    width: 100vw;       
+    width: 100vw;
+    max-width: 100vw;       
     border-radius: 20px 20px 0 0; 
     border: none;
     border-top: 1px solid #555;
-    padding: 15px 16px 25px 16px; 
+    padding: 12px 14px 20px 14px; 
     box-shadow: 0 -4px 20px rgba(0,0,0,0.6); 
   }
 
-  .ui-header h2 { font-size: 0.95rem; }
+  .ui-header h2 { font-size: 0.92rem; }
   
-  #playBtn, #recordBtn {
-    padding: 6px 11px;
-    font-size: 0.85rem;
+  #playBtn, #recordBtn, #toggleUiBtn {
+    padding: 6px 9px;
+    font-size: 0.8rem;
   }
 
   label { font-size: 0.8rem; margin-bottom: 3px; }
@@ -174,7 +177,29 @@ select {
   select { padding: 5px; font-size: 0.85rem; }
   
   #ui-content {
-    max-height: 50vh; 
-    overflow-y: auto; 
+    max-height: 48vh; 
+    overflow-y: auto;
+    overflow-x: hidden; /* 防止產生水平捲軸 */
+  }
+}
+
+/* =========================================
+   📱 極小螢幕專屬優化 (<= 360px，如 320px 小手機)
+   ========================================= */
+@media (max-width: 360px) {
+  .ui-header {
+    gap: 6px;
+  }
+
+  .header-actions {
+    width: 100%; /* 3顆按鈕獨立成一整排，平均分配寬度，超好按！ */
+    justify-content: space-between;
+  }
+
+  #playBtn, #recordBtn, #toggleUiBtn {
+    flex: 1;
+    text-align: center;
+    padding: 7px 4px;
+    font-size: 0.8rem;
   }
 }
