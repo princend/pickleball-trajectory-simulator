@@ -30,11 +30,16 @@
         </div>
         
         <div class="control-group">
-          <label for="spinType">旋轉 (Spin):</label>
+          <label for="spinType">旋轉模式 (Spin):</label>
           <select id="spinType">
-            <option value="flat">平擊 (Flat)</option>
-            <option value="topspin">上旋 (Topspin - 下墜加劇)</option>
+            <option value="flat">平擊 (Flat - 無旋轉)</option>
+            <option value="topspin">上旋 (Topspin - 馬格努斯下壓)</option>
           </select>
+        </div>
+
+        <div class="control-group">
+          <label>上旋轉速 (Spin Rate): <span id="rpmVal">0</span> RPM</label>
+          <input type="range" id="rpmSlider" min="0" max="3000" step="100" value="0">
         </div>
 
         <div class="control-group">
