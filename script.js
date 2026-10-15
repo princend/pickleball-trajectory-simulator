@@ -357,39 +357,34 @@ function playShot() {
   animateBall();
 }
 
-// === 球體飛行與錄影自動收尾邏輯 ===
-let mediaRecorder = null;
-let recordedChunks = [];
-let isRecording = false;
-
 function animateBall() {
   if (animIndex < pathPoints.length) {
     ball.position.copy(pathPoints[animIndex]);
     animIndex += 3; 
     animationFrameId = requestAnimationFrame(animateBall);
-  } else {
+  } else if (pathPoints.length > 0) {
     // 確保球停在最後一個位置
-    if (pathPoints.length > 0) {
-      ball.position.copy(pathPoints[pathPoints.length - 1]);
-    }
-    // 若正在錄影，球飛完後多留 0.5 秒尾韻再自動停止並下載影片
-    if (isRecording && mediaRecorder && mediaRecorder.state === "recording") {
-      setTimeout(() => {
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-          mediaRecorder.stop();
-        }
-      }, 500);
-    }
+    ball.position.copy(pathPoints[pathPoints.length - 1]);
   }
 }
 
 // ==========================================
-// 🎥 Threads 專用：一鍵錄製純淨 3D 擊球影片功能
+// 🎥 手動控制：開始錄影 / 結束錄影並下載影片
 // ==========================================
-function startRecordingShot() {
-  if (isRecording) return;
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
 
-  // 擷取 Three.js 畫布的 60 FPS 影格串流 (不含 HTML UI，畫面超乾淨)
+function toggleRecording() {
+  // 如果正在錄影 -> 按下按鈕即「結束錄影」
+  if (isRecording) {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+    }
+    return;
+  }
+
+  // 如果尚未錄影 -> 按下按鈕即「開始錄影」
   const stream = renderer.domElement.captureStream(60);
 
   // 優先使用 Threads 支援度最高的 MP4 格式，若瀏覽器不支援則退回 WebM
@@ -420,24 +415,25 @@ function startRecordingShot() {
     // 自動觸發下載
     const a = document.createElement("a");
     a.href = url;
-    a.download = `pickleball-${presetSelect.value}-${spinTypeSelect.value}.${ext}`;
+    a.download = `pickleball-${presetSelect.value}-${spinTypeSelect.value}-${Date.now()}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
 
+    // 恢復按鈕外觀
     isRecording = false;
     recordBtn.innerText = "🎥 錄影";
     recordBtn.classList.remove("recording");
   };
 
   isRecording = true;
-  recordBtn.innerText = "🔴 錄製中";
+  recordBtn.innerText = "⏹️ 結束";
   recordBtn.classList.add("recording");
 
   mediaRecorder.start();
-  playShot(); // 開始錄影的同時自動擊球！
+  playShot(); // 按下開始錄影時先自動發第一球，之後你可以自由按「揮拍擊球」或轉視角！
 }
 
-recordBtn.addEventListener("click", startRecordingShot);
+recordBtn.addEventListener("click", toggleRecording);
 playBtn.addEventListener("click", playShot);
 
 // RWD 視窗大小與攝影機自動適應監聽
